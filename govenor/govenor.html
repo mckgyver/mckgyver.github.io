@@ -1,0 +1,132 @@
+<!-- page=Firewood_Processor_Governor -->
+<!-- uid=55d865e0197dbd2640b14af962bdb9175d031222 -->
+<!-- time=1248550738 -->
+<!-- ip=75.67.158.32 -->
+<!-- content-type=text/html -->
+<!-- name= -->
+<!-- email=mckgyver@gmail.com -->
+<iframe width="360" height="270" src="http://www.youtube.com/embed/v7GLQU-0Nwc?rel=0" frameborder="0" allowfullscreen></iframe>
+<h1 style="text-align: left;">&nbsp;</h1>
+<h1 style="text-align: left;">Rick's Firewood Processor</h1>
+<p>&nbsp;</p>
+<p style="text-align: left;">Over the last few years, my machining mentor Rick has been constructing a diesel powered firewood processor from scratch.The machine is capable of cutting and splitting a cord of wood per hour through precision orchestration of hydraulics and internal combustion. After a few design iterations, all of the mechanical components are bullitproof.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img src="ProcessorBack.JPG"></p>
+<p>&nbsp;</p>
+<h1 style="text-align: left;">Operation</h1>
+<p style="text-align: left;">See below image "Woodprocessor Controls"</p>
+<ol>
+<li style="text-align: left;">Logs are loaded&nbsp; onto staging area "A" with a tractor.</li>
+<li style="text-align: left;">A&nbsp;&nbsp;single log is rolled into trough "B" and is advanced up to length indicator "C" via a toothed chain controlled by lever "2".</li>
+<li style="text-align: left;">The log is held in position with the log mandible (controlled by lever "1").</li>
+<li style="text-align: left;">The hydraulic chainsaw is turned on (lever "6") and the bar is advanced into the wood to cut off a section (lever "4").</li>
+<li style="text-align: left;">The log falls into the splitter trough "E" (controlled by lever pair "5"), and is split into 2, 4, or 6 pieces depending on diameter.</li>
+<li style="text-align: left;">The splitter ram is automaticly retracted, and the processor is ready for another cycle.</li>
+</ol>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img src="woodprocessorControls.JPG"></p>
+<p style="text-align: left;"><strong>Woodprocessor Controls</strong> 1- Log Mandible, 2- Log Advance, 3- Splitter Wedge Select, 4- Chainsaw Cut/Retract, 5- Splitter Ram Advance/Retract, 6- Chainsaw Chain On/Off, 7- Governor Control Box, 8- PID Controller Tuning Computer, A- Log Staging, B- Log Trough, C- Length Indicator, D- Hydraulic Chainsaw, E- Log Splitter</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img src="ChainsawActuators.JPG"></p>
+<p style="text-align: left;"><strong>Actuators</strong> 1- Hydraulic Chainsaw, 2- Hydraulic Motor (For Chain Movement), 3- Saw Articulation Cylinder, 4- Bypass Valve (Regulates saw engagement force to avoid stalling), 5- Log Mandible, 6- Mandible Articulation Cylinder, 7- Toothed Log Advancement Chain, 8- Diesel, 9- Hydraulic Oil, 10- Chainsaw Bar Oil.</p>
+<p>&nbsp;</p>
+<h1 style="text-align: left;">Upgrading Throttle Control</h1>
+<p>&nbsp;</p>
+<h2 style="text-align: left;">Fixed Throttle Operation</h2>
+<p>Initially, throttle position was held constant by holding the throttle body against a hard stop. Throttle position was selected for reasonable loaded performance and safe unloaded operation.See <a href="http://www.youtube.com/watch?v=np9l8YD36d8">http://www.youtube.com/watch?v=np9l8YD36d8</a> (embeded below) for a video clip of the wood processor in fixed throttle mode. As expected, the engine tends to bog down during heavy loads.</p>
+<p>&nbsp;</p>
+<h2 style="text-align: left;">Throttle Governor</h2>
+<p style="text-align: left;">I&nbsp;designed a governor for Rick's wood processor with the objective of maintaining constant engine speed during operation. The governor was designed to act like an automotive cruise control by opening the throttle for more power during heavy cuts and closing the throttle for safe idling when unloaded.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;">The heart of the throttle governor is a PI controller implemented on an ATMEGA&nbsp;168 microprocessor. Throttle position is adjusted via servo motor based on engine speed calculated with an optical encoder disc.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img src="VWDieselTach.JPG"></p>
+<p style="text-align: left;"><strong>Tachometer for VW Diesel</strong> 1- Photogate, 2- 8 Slot Encoder Disc, 3- VW Rabbit Diesel Engine</p>
+<p>&nbsp;</p>
+<p style="text-align: left;">&nbsp;<img height="250" width="333" src="woodprocessorDSC00071.JPG" style="border: 0px solid rgb(0, 0, 0); margin: 0px;"> <img height="250" width="188" src="woodprocessorDSC00072.JPG" style="border: 0px solid rgb(0, 0, 0); margin: 0px;"></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p style="text-align: left;">A servo motor was attached to the stock throttle body so that power could be increased during heavy loading.&nbsp;</p>
+<p style="text-align: left;"><img src="VWDieselServoThrottle.JPG"></p>
+<p style="text-align: left;"><strong>Servo Linkage for Diesel Engine</strong> 1- Stock Throttle Body, 2- 15 cm*Kg (13 in*Lb) Water Resistant Servo</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img class="pluginslug" src="/plugin_helper.php?plugin=youtube&amp;html=http%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dnp9l8YD36d8&amp;name=Firewood+Processor"></p>
+<p style="text-align: left;">A video of the wood processor in action prior to installing the governor. The throttle was set to a single position as all cutting operations were carried out. The throttle must be set low enough to avoid engine damage at idle, but high enough to avoid stalling during peak loading. Notice how the engine tends to bog down during heavy cuts.</p>
+<p>&nbsp;</p>
+<p><img class="pluginslug" src="/plugin_helper.php?plugin=youtube&amp;html=http%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dv7GLQU-0Nwc&amp;name=woodprocessor+governor+arduino">&nbsp;</p>
+<p>Here is a video of the wood processor with the new governor installed.</p>
+<p>&nbsp;</p>
+<h1 style="text-align: left;">Governor Design</h1>
+<p>&nbsp;</p>
+<p style="text-align: left;">The governor was designed to easily integrate into Ricks current operating procedure.</p>
+<p>&nbsp;</p>
+<ol>
+<li style="text-align: left;">Engine is turned on.</li>
+<li style="text-align: left;">Governor automaticly defaults to off position (Sets servo to 0, Sets Mode to Open Loop)</li>
+<li style="text-align: left;">Rick selects preset throttle position (Throttle is adjusted to approximately 50%)</li>
+<li style="text-align: left;">Rick Selects Closed Loop mode (Governor regulates speed)</li>
+<li style="text-align: left;">Begin Cutting timber</li>
+</ol>
+<p style="text-align: left;">In closed loop mode the throttle is automatically adjusted to increase power as needed to maintain constant engine speed.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><strong>Failsafes</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If Emergency Stop Button is pressed, Engine Stalls, Tachometer Breaks, or Engine exceeds 1800 RPM:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;servo is set to 0 and governor is set to open loop mode.</p>
+<p>&nbsp;</p>
+<p><strong>Anti-Windup</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; As noted in the Arduino code an anti-windup strategy was employed inorder to eliminate poor performance after throttle saturation.</p>
+<p>&nbsp;</p>
+<p><strong>PID Design</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; A rough system identification was performed on the diesel engine to get an understanding of the open loop system characteristics.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rough values for Kp and Ki were selected to give stable operation for subsequent tuning operations.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; The Ziegler-Nichols approach was used to refine PI values for the final controller design.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Additional safegaurds were implelemented to reduce the risk of damaging the diesel engine after rapid unloading conditions.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img src="FireWoodProcessorAssembly.jpg"></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>Arduino Code</h1>
+<p><a href="PIDThrottleMyPIDswitch.pde">PIDThrottleMyPIDswitch.pde</a> (terribly commented at the moment)</p>
+<p><a href="/Arduino_PID">Arduino_PID</a></p>
+<p style="text-align: left;"><a href="/Arduino_Tachometer">Arduino_Tachometer</a></p>
+<p>&nbsp;</p>
+<h1>Adjusting Closed/Open Loop Setpoint</h1>
+<p>The most elegant and robust solution for adjusting the throttle position or governor setpoint&nbsp;is to use a quadrature encoder. Without an expensive water resistant potientiometer it is difficult to avoid device degredation inherent with an outdoor environment. For this project, I&nbsp;decided to quickly make my own rotary encoder from a mouse and a stepper motor. The stepper provides a really satisfying tactile click when adjusting the setpoint position (although any quadrature encoder could be used for this application).</p>
+<p>&nbsp;</p>
+<p>With a rotary encoder, transitions from open to closed loop mode (and back) are streamlined and simplified. It is possible to ignore absolute encoder position (inherent with single turn potientiometers) and instead measure relative changes in encoder state.</p>
+<p>&nbsp;</p>
+<p style="text-align: left;"><img height="225" width="300" src="Stepper_Encoder_Knob.JPG" style="border: 0px solid rgb(0, 0, 0); margin: 0px;"> <img height="225" width="300" src="Stepper_Encoder_Knob3.JPG" style="border: 0px solid rgb(0, 0, 0); margin: 0px;"></p>
+<p style="text-align: left;">&nbsp;</p>
+<p>&nbsp;</p>
+<p style="text-align: left;">Links to encoder information</p>
+<p style="text-align: left;"><a href="http://www.members.shaw.ca/swstuff/mouse.html">http://www.members.shaw.ca/swstuff/mouse.html</a></p>
+<p><a href="http://www.societyofrobots.com/sensors_encoder.shtml">http://www.societyofrobots.com/sensors_encoder.shtml</a></p>
+<p>&nbsp;</p>
+<h1>Safe System Design</h1>
+<p>The governor was designed to be as robust as possible, functioning safely even with some broken components.</p>
+<p>&nbsp;</p>
+<p>Broken Tachometer</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Indication - Tach LED does not illuminate</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Functionality - Governor automatically locks in open loop mode and kills throttle. After governor reset, device will function in open loop mode only.</p>
+<p>&nbsp;</p>
+<p>Broken Rotary Encoder</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Indication - Encoder rotation does not effect Servo movement</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Functionality- Governor will function properly in open or closed loop mode. The user is limited to the open/ closed loop presets.</p>
+<p>&nbsp;</p>
+<p>Broken Arduino</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Indication - No LEDs illuminate</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Functionaliy - Servo Resets to 0. Wood processor can be operated in manual throttle mode.</p>
+<p>&nbsp;</p>
+<p><img src="controlboxlabel.jpg"></p>
+<p>&nbsp;</p>
+<p><a href="Info-for-Rick.html">Info for Rick</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+
+<!-- pbraw=eJzVWm1v20gO/p5fMRDQvWTX72lemja9y0vTzbVpe0l3i7svxUgaydNIGq1Gsut/fw85kmwnjuNsFwccULiRLJEcDvnwIce5jNXRhS7U1Jjw66fCBMpaU3x9ayaqyEyxVenwaG8vPNzfU4Phi4PQD0f7zwf+8LmMXuyP/NB/MTzYCwe7w9FotFXqVB0NR88P9/YGB7uHWzo/Otjr7R/0hnuHvd3RVmCyUmVlt5zl6qhU38v+uEyTrUzitS2VSp0cpcFtPIPuf8R02QtMukXPdCe6iHV2lJmtbrcrzmUpxYVJEjO1Aje2Xo2HwpazRB17JLcrEx1nRyJRUfnSe/1Kp7EIEmntsZcnFQRZfHrCFsGx13d3vo5Vkquil4/zv7s7xzNTlZWvfpJp/pKMOB6XZf5s9+TZ6AL/ptNpr36CzKQ7sgzGz3YvJs92zycHb9//67fu4MM04Pdpjcfk5Lzx8S9x7eNfZBFWOjOwsz8evn5kLT9lvs1fbvLktQ5u/2ZFs7ui3d365byVldPVGkkfYagox0rAhaWI1FTMlCxsR6QzkcpgrDOdxSLF1ppCkFoxllb4SmUCW27LogpKekKKUCurEpGbqSpUKKLGttYrIipMKmxQkC97n6HTKVBCWxHIXPqJEiYSQVU6kVkobJ7o+gr6ipC+d1Jh9thUZHthqngMNSrQVptMmCIYK1gmS76KxHgWFrJKdGBZpkakFplMIDD1K0tP9cRJhJtQQh4IlYWLhMYdlgFvyCQhSeSoVAVjmenACchNBt9AcKGEXyWwFus1Ua/2/Mb7wHHMQRv12908lcFt75+f3lL43Be3NkI+5rXxTUSsefZGwXaFhBM6BWgI78tiMIszpHZhEus5tSbBR6LXyHtvYueQxMhQhc5mASkGL8mYd7NQUngnnpjqcgy3Y7cCRBjclujHxJ84ge7TQlpCmmKKIpiZKN5hA5EcF96p53YdJoUTmQX4vsoFHkhUFkO5zkJsJoW3d+aJiZZkjjHY6lBgpzUHellL9md4jVLGG3kbGUthXhsHFCLTkCFWc2jy2sv6gRRGasqA7ZXqht7OxvraeHf2Wzkl9WVVZBAJvdu1zH1vh11DJviyWHKRcyG+4GzD38hKZEAE51gVsPmNmOdPMI1WGiGZ7FyBS3FCoXrD3nirfZBLDW173k6n2VB+1UkadcTzDlJf7ItcK0QusjhXcCmCDbaGGiANJRsb2lpVyJQdU5UmRUIFyUwUisNVhZ3WffNsoShUMpyJCBcyozgqRDALEtXo7nMG/Rlo6Ef9pTrTZOYSRqyTBFQ0Wfx6dX6/6tdfi2FXIIfFVR2SHTFyN05cdHTEblfcNA76okJgxo1KEBbYhK44a4LurCr7185XHbG38Mo1fFrLmj+wv/gm593HrP8xijrioCsa0tIYK07N94447IpPl+fNvQSSP1dcr84AzBU0dcSJs/zG4U5HnLrrzxxrHXGGSwcDlw0MdMR5V/zaplBjU0e8qUXVq1iJ8OuuNt3iRuNJUFZk0JO3t31xaUdXLWm0ePvKEAhuX5CX2f9XcDpV/h234diXkwIZUCWusp7NEmAnORmbfjrLwcHE7zKZAMKuVUxPIQtpN+FglBWSREkRKIITOTE6pHKAkpnFOxwfyzGHeGguHtKLwPhcI/VCeLIiXgFHyDnzko54sbjWjxp3hoOFkDsFAOLuysK9ttL+lseFZJz5DCpSljC3DsiVZGw8WiPrQn/HWlo5i0V8xJIuM5QO+GzWYeLDT83riayLDDMzCS8AO8cmYeMIpdpXfAOAkjEtvQSij0FTYZXJe3PdS1ItZzexOgQH4M2ajNmaK/BExvBFSs53rE1GSlRZ/a1pVtEjovEK6goVHXvEuI/6/Ttcu89M+++T4yx/kRz++3x3Pzz0Xm/+7Ku+fC22VeorUs2sZsdBMUp7qFDHEp03VO4OP0XIR7wBrZ9SEypwQyvU91w5xKf3ENBEW9HwhJaC2UfwhWaKMlMV5OuxkpMZO8eujqd1MdDuQIN5zeaveefSSXfEFQuQoulAeO11u3BnuS39MP43KukTZt/ozbJSOtrfxlG9YJsrCK8XOd9WQQWzVUjx0hpCmR6UItG3FBmuihpWFRSVtqrhVhSpEJjdi1QyPzWFcn3FsoNBSRyjDxJjV77JgahDghgxHaNnaYLyyfyceRU6o7KJnVZPu3BiCahHc7qIW2meMB454gUPnHy+evO2ZrDD/UOR6qAw7Z6syj9mZd/Qp0AGsVOriomBTwisfWmd5KUNQmvCYIk/Hb1GF5SX3LGoLEBIw4/aBj/Qo6BK/f7FAetn9HBPLVD0jmE+xrv0+5capJfq1acxlhhjFVymDsVNYkrxprb/HPZzVcK719L3QQOdCDxBnnjq0urnaIFjpeNxeeyN9gbUnoTl+Njb3d31VlOw85uzwWBwMGQXNAp8dKqqOBKD/LuwJkGhK2J/e9AR9G/nJXKMJx70PXSLB9UODw+9pilcpXX0A1r/SvpyshSUBACyLLHHDgCY5JcmuL1Tfyx9Jcs6swNTJQTYQOGAKswcaOZoiqveDwXrDZnZpNhTo5ZfFu91dktNMgXunZBbCN4bXm+bzKdYL4fxcE8E6c/vYrE93MVKf37v74gvkjkxINOBLev5C/jk/3YqtlCD51OxZkD1SzvS2MThJ3WpfrBKS9eA5oXGNSKMaIwjkvxCg8iuMLVB54hMyTVJ1HODFmUpZpOknT21xQ1VU6H6BLIoNEFtVd6RmgKZKWxJMo1QVMZdbEtxa2QOJY9WEO4oR4A0H+30GBl/7/l2JXX050retsEvPqB4gmSNoWhzIkJ1cjXY/9+MT5et/pW2hMvtukBp+U2mpgtV2sXKAxRgLdNvm9BzpjdPnrWupUmAPJ3MeDiJfqJUbqxBzM1iA4uCmpo6KikqaJXYZLVyFY+P6BxkLY2FNhqNtC5YnIeEKkJXVXIE0oioTartG1XaujbgO9QhvnGFEk7XaG8yNG4m39lENQ+fXSNiadrLqXyPLW23mLvImyi7cvjsu4bNCibvDZ5trvSmVnoGmsmtpsm5MxDbrTuKecNLFGwj2acKe0BDEt7RUqNnKZZHROsYf8asF+YkrTlLtHRxZkUN45Izmhpb116EYqa4YcJ3TQOwmv0/nTTWVfFC6oTo+HwosSzpoc/LSLxJVRGDuc6orObiFB5zvJiiwFJTVofzDWW27YgFfnmKdd5angzWD6nvAdZhxfBwMBDXn66ONrNj/aeLcd0WmAH3JYutQf0FNTnzLXsIlZtBTlbq7hedhVW+sdeoW81MySNcjogTh6GCiDP3YCR0ykIFn5KoeMZopNCsmBm/yEySUSnRqc4IjnKDdSw1+nxi0sablUAS1w+uXxRN7BoA3XhNws2G7QwRnKKEAg11RPO6ZkJRW+a6IVp2fRzVVEgjYmyApA4QS6O4dqNhVznmu1JrCMaSR7wFOJkO7lbPhz6v2ciJTCoAARHEdznHwTvtWEQ7RiFzqAmGHXzo1bAN17RWvlV/VAT4pRtnztnIo4YwOfmPViA3RfeDRh4k1mEfcoI9VVlnQKEi8gwa1gWDyRm4zWdbbRfrytTjqk/CkEEYb1Omx7Iqwpo/cSPctsKsPawCB1nw8S1tBFOkhsMtb5+LtULmIEiuha/HE07hA+xmw+M2Iqk0EW856glAJfWTWe9bHm/SKIEGNEl2hiRreUE76kIHgqhvKtPVDBcW7ASNcx4q7/XD37lpFtZeaNhD5421B2XpziINz2fbFGsV1vZ8hTTv9cIFCdzAO/fkzBF1Lm5+b0HqPcdw1eGZPJerflv0iQvkBrWm9RcfCRvQaURKTIWHcqcwdEZLDW3VZohshS6VvJYE4JEWem2txdmlmaQgBcAd/6hkWBBqqWYs0hNfwBnBXAkoaOSXWcrSKTdoRdug5SDhBEB1iaEjKHA5HUU0oy7nVD5UEyLrIQidCl1+62ysmMq1g5mqDAlZVTbRwELazp644EzkAme+8bFKO+ALdF2m/6hATRI6pL9VdFhPrB9+kMWsHfLwebuES3m9GY0FAW45HZ1zp+46meYWdBGbJlaNmkmMAZCubTRjP1PLBRcHCREiHqUtb0Lj5gUmJhPyZUzLnK1w9rzjZ0SKmjUDrJIa2XceKCVf3KHx8nI7dIicOeXWrZ1hnc4u7zKlbfKGL4PbHT6nRhlSMkXXRZlF82uCK9QX0B1xybuLVVk+iSDyFGc0kJQ+x+R8PfOVL+9y3WoS0b4TOnan/kEC9kCGIgUlIwcVik46aEY6llms6Ky0VYIILB+gDY/BXTthGu3NB1uDwXywdeMi4Ws9ZPv6LjP+XzfXWql1tdLdH59rbfAzm6e5kOY+DB7NTuiMqZA7ntkYURdOMlI6pShsz47ltBfIvp3asoqiPudrj9rqpYOPxx9fhOFVCq0JtCpnBrnhm9LyEYoFxpnCfm0Q0N7Tu/Fba6rADc3hbxy1utM8r22KAQ7SNiVAztOwI6Iq4yEQ4Q+RDcCVmqj6NxUW6SX8wtzyr5Sa3+g8ACan7rnFavYIz6mPiinVu/yeeP/mXIRGMfMWOkkqR5oflXRRrwLBUs7EwjH3cuuWGJoC6OxO98Dgcavp1xRNDWx+yBTPG1Mgc6cpRVM83LpuhUCTgfWsddO1w9w6Wzds4Rb91UzwCbz5Vus3FUWodW78CXPc2fPTXLjgweWlorgBZHi+4taMJ+5WBVcOkUzcr1HjU84H2PRSf+kVN4J4JKpqrvS0kPpgKKDsnwwkiiPnw2s2kNtRMJvl4VgA7uE3nYdrFtHWVaDuy4efa8aGNYDXjYJvvifSV8k60jznlZcAzy7ws0sDFppmRKY9qXwIR9YPwxlvj72A+HHRgvwdFGx+gtrL/am+1Yxl3uur4N1buit+BQBspj3Uk0ZjQfWNER6ZgSbz2PvqJzK79e4DMP3SRaUznfdMEfdLg96sP1U+aIPqTjT+A6Z2QYtoCV08TIyS/g9ucU2V33Wj/bqgu8J47KGYgmsdeyfY/hk9UBfXhzU7kf3haDjoP98/fP7hunv56fK0vzt6vnuAu7v9F/3sm/2tSEgXewQrXu+T/wI/2GF3 -->

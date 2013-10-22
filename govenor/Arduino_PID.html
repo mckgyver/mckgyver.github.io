@@ -1,0 +1,452 @@
+<!-- page=Arduino_PID -->
+<!-- uid=55d865e0197dbd2640b14af962bdb9175d031222 -->
+<!-- time=1248538960 -->
+<!-- ip=75.67.158.32 -->
+<!-- content-type=text/html -->
+<!-- name= -->
+<!-- email=mckgyver@gmail.com -->
+<p>&nbsp;</p>
+<p><a href="/f/PIDThrottleMyPIDswitch.pde">PIDThrottleMyPIDswitch.pde</a></p>
+<p><a href="/f/PIDThrottleMyPIDswitch.pde">PIDThrottleMyPIDswitch.pde</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>////////////////////////////////////////////////</p>
+<p>/*</p>
+<p>PID Throttle Governor</p>
+<p>M.G.McKinley</p>
+<p>6/1/2009</p>
+<p>http://mckgyver.pbworks.com</p>
+<p>&nbsp;***********&nbsp; THE BURRITO-WARE LICENSE&nbsp; *************</p>
+<p>&nbsp;As long as you retain this notice you can do whatever you</p>
+<p>&nbsp;want with this program. If we meet some day, and you think</p>
+<p>&nbsp;my work is cool/helpful you can can get me a buritto in return.</p>
+<p>&nbsp;</p>
+<p>&nbsp;Compiler = Arduino v15</p>
+<p>&nbsp;Project microcontroller = Atmel 168 RBBB Arduino</p>
+<p>&nbsp;Servo = Generic 100g 15in*oz</p>
+<p>&nbsp;Encoder = 2ch rotary encoder (custom for this case, but anything quadrature will work)</p>
+<p>&nbsp;Tachometer = Photogate + 8 hole encoder disc see schematic for optical tachometer <a href="http://mckgyver.pbworks.com/Arduino_Tachometer">http://mckgyver.pbworks.com/Arduino_Tachometer</a></p>
+<p>&nbsp;Functionality test, code needs to be optimized</p>
+<p>&nbsp;This is the software side of an Arduino powered governor for an internal combustion engine. Closed loop control is accomplished</p>
+<p>&nbsp;by measuring engine speed (with an optical tachometer) and adjusting throttle body position with an RC servo. The governor utilizes</p>
+<p>&nbsp;a simple PID algorythm to calculate throttle changes, and incorperates a number of safeguards to avoid damaging the engine.</p>
+<p>&nbsp;</p>
+<p>&nbsp;*/</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>int DataFast = LOW; //High for time, RPM</p>
+<p>int PrintRate =10; // # of cycles before printing data</p>
+<p>byte loopCount=0;</p>
+<p>long PIDtime=0;</p>
+<p>int ThrottleMin =0; //in degrees, determines servo open loop idle point</p>
+<p>int ThrottleMax =101; //in degrees, sets servo throttle max</p>
+<p>int RPMmin=0;</p>
+<p>int RPMmax=1600; //Highest RPM allowed for closed loop setpoint</p>
+<p>int PresetSetpointPin = 7; //IO pin for preset button</p>
+<p>int OpenLoopPresetSetpoint = 60; // degrees</p>
+<p>int ClosedLoopPresetSetpoint = 1300; //RPM setting</p>
+<p>// smooth setpoint adjustment (not used)</p>
+<p>int AdjustingSetpoint = 0;</p>
+<p>int SetpointInitial;</p>
+<p>int SetpointFinal;</p>
+<p>int dSetpoint;</p>
+<p>// diesel protection</p>
+<p>int KillRPM = 1800; //sets max RPM threshold (auto kill if exceeded)</p>
+<p>int RunAway=0;//0.4;</p>
+<p>int RunAwayThreshold=ClosedLoopPresetSetpoint+100; // detect rpm surge after rapid unloading</p>
+<p>int Reacting=0;</p>
+<p>//PID</p>
+<p>float Setpoint= 0; //Initial Closed loop setpoint</p>
+<p>float Input=0;</p>
+<p>float Output=0;</p>
+<p>float OutputOld=0;</p>
+<p>float Kp=0.09;//.09;</p>
+<p>float Ki=0.000025;//0.00005;//0.00001;</p>
+<p>float Integral=0;</p>
+<p>float Kd=0; // Turn derivative action off</p>
+<p>float Error=0;</p>
+<p>float PreviousError=0;</p>
+<p>float Derivative=0;</p>
+<p>// Servo</p>
+<p>#include &lt;Servo.h&gt;</p>
+<p>Servo myservo;&nbsp; // create servo object to control a servo</p>
+<p>int Throttle=ThrottleMin; //Set servo to 0 on reboot</p>
+<p>int ThrottlePin = 10; //Pin to attach servo</p>
+<p>//Pot</p>
+<p>//The governor is designed to use a rotary encoder as primary adjustment device</p>
+<p>//Potentiometer is implemented in code as redundant system.</p>
+<p>int potpin = 0;&nbsp; // analog pin used to connect the setpoint adjustment potientiometer</p>
+<p>int KnobVal;&nbsp;&nbsp;&nbsp; // variable to read the value from the analog pin</p>
+<p>int AnalogSelect = 6; //pin to enable potpin as an input</p>
+<p>int AnalogSelectCount=0;</p>
+<p>//Tach Variables</p>
+<p>&nbsp; int TicsPerRev = 8;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // define number of tics per rev of code wheel</p>
+<p>&nbsp; float rpm = 0.0;&nbsp; // I prefer float for rpm</p>
+<p>&nbsp; volatile int rpmcount =0;&nbsp; // volitile because the variable is manipulated during the interrupt</p>
+<p>&nbsp; unsigned long timeold = 0; // used to calculate d_t= millis()-timeold;</p>
+<p>&nbsp; int d_t;</p>
+<p>&nbsp; int statusPin = 13;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // LED connected to digital pin (changes state with each tic of code wheel)</p>
+<p>&nbsp; volatile byte status= LOW;&nbsp;&nbsp;&nbsp; // set initial state of status LED</p>
+<p>//Kill Switch</p>
+<p>int KillSwitch = 5;</p>
+<p>int ESTOP=HIGH;</p>
+<p>//Smooth Tach</p>
+<p>#define NUMREADINGS 10</p>
+<p>int readings[NUMREADINGS];&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the readings from the analog input</p>
+<p>int index = 0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the index of the current reading</p>
+<p>int total = 0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the running total</p>
+<p>int RPMaverage = 0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the average</p>
+<p>//Encoder</p>
+<p>int encoderPinA = 3; //Interrupt 1</p>
+<p>int encoderPinB = 4;</p>
+<p>//Open Closed Loop Switch</p>
+<p>int ModeSwitchPin = 8;</p>
+<p>int ModeSwitchCount = 0;</p>
+<p>int ControlMode = 1; //1 = Open Loop, 0 = closed loop</p>
+<p>int ClosedLoopLED = 11;</p>
+<p>int OpenLoopLED = 12;</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void setup()</p>
+<p>&nbsp;{</p>
+<p>&nbsp;&nbsp; Serial.begin(9600);</p>
+<p>&nbsp;&nbsp; //Encoder</p>
+<p>&nbsp;&nbsp; pinMode (encoderPinB,INPUT);</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Kill Switch</p>
+<p>&nbsp;&nbsp; pinMode (KillSwitch,INPUT);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Analog Input Select</p>
+<p>&nbsp;&nbsp; pinMode (AnalogSelect,INPUT);</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Open Closed Loop Select</p>
+<p>&nbsp;&nbsp; pinMode (ModeSwitchPin,INPUT);</p>
+<p>&nbsp;&nbsp; pinMode (ClosedLoopLED,OUTPUT);</p>
+<p>&nbsp;&nbsp; pinMode (OpenLoopLED,OUTPUT);</p>
+<p>&nbsp;&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp;&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp; //ModeSwitchCount=10;</p>
+<p>&nbsp;&nbsp; //ModeSwitch();</p>
+<p>&nbsp;&nbsp; pinMode (PresetSetpointPin,INPUT);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Servo</p>
+<p>&nbsp;&nbsp; myservo.attach(9);&nbsp; // attaches the servo on pin 9 to the servo object</p>
+<p>&nbsp;&nbsp; pinMode(ThrottlePin, OUTPUT);&nbsp;&nbsp; // sets the pin as output</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp; //Tach Status&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; pinMode(statusPin, OUTPUT); //Use statusPin to flash along with interrupts</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp; //Smooth RPM</p>
+<p>&nbsp; for (int i = 0; i &lt; NUMREADINGS; i++)</p>
+<p>&nbsp;&nbsp;&nbsp; readings[i] = 0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // initialize all the readings to 0</p>
+<p>&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp; Throttle_Reset();</p>
+<p>&nbsp;&nbsp; //Interrupt 0 is digital pin 2, so that is where the IR detector is connected</p>
+<p>&nbsp;&nbsp; //Triggers on FALLING (change from HIGH to LOW)</p>
+<p>&nbsp;&nbsp; attachInterrupt(1, set_fun, FALLING);</p>
+<p>&nbsp;&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>&nbsp;}</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>&nbsp;void loop()</p>
+<p>&nbsp;{&nbsp;</p>
+<p>&nbsp;&nbsp; //Don't process interrupts during calculations</p>
+<p>&nbsp;&nbsp; detachInterrupt(0);</p>
+<p>&nbsp;&nbsp; detachInterrupt(1);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; d_t=millis()-timeold;</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //KillSwitch</p>
+<p>&nbsp;&nbsp; //Ideally the kill switch should be on an interrupt, but Ive already used bith of them</p>
+<p>&nbsp;&nbsp; if (digitalRead(KillSwitch) == LOW)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle_Reset();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Update RPM every 1/10 second</p>
+<p>&nbsp;&nbsp; if (d_t &gt;= 100)</p>
+<p>&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //Stall Failsafe</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (RPMaverage &lt;1 &amp;&amp; Setpoint &gt; 10 &amp;&amp; ControlMode == 0)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle_Reset();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (RPMaverage == 0 &amp;&amp; ControlMode == 0)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ControlMode=1;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount=-12;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (digitalRead(ModeSwitchPin) == HIGH)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTOP=LOW;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ESTOP == HIGH) //Wont let governor return to closed loop without reset</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ControlMode=1;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount=-12;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //Mode Check</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitch();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //Preset Setpoint</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ((digitalRead(PresetSetpointPin) == LOW &amp;&amp; ESTOP == LOW) )//| AdjustingSetpoint == 1)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PresetSetpointAdjust();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CalculateRPM();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (RPMaverage &gt; KillRPM)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle_Reset();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timeold = millis();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Input=RPMaverage;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ControlMode == 0) //Closed Loop mode</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //PID////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Error=Setpoint-Input;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (Throttle &lt; ThrottleMax &amp;&amp; Throttle &gt; ThrottleMin) //Anti Windup</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integral = Integral + Error*d_t;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Derivative = (Error - PreviousError)/d_t;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Output = Kp*Error + Ki*Integral + Kd*Derivative;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Output=constrain(Output,ThrottleMin,ThrottleMax);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle = Output; // ready for switch to open loop mode&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else //Open Loop mode</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Output=Throttle;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integral=Output/Ki;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (digitalRead(ModeSwitchPin) == HIGH)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=RPMaverage; // ready for switch to closed loop mode</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (RPMaverage &gt; RunAwayThreshold)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RunAwayAdjust();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (Reacting &gt;0)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RunAwayAdjust();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; myservo.write(Output);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // sets the servo position according to the scaled value</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //analogWrite(ThrottlePin,map(Output,ThrottleMin,ThrottleMax,0,255));</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OutputOld=Output;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; d_t=0; //reset d_t</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (loopCount &gt;= PrintRate)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PrintData();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loopCount++;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rpmcount = 0; //reset rpmcount&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp; }</p>
+<p>&nbsp; //Restart the interrupt processing</p>
+<p>&nbsp; attachInterrupt(1, set_fun, FALLING);</p>
+<p>&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>}</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void rpm_fun()</p>
+<p>&nbsp;{</p>
+<p>&nbsp;&nbsp; //This interrupt is run at each codewheel tic</p>
+<p>&nbsp;&nbsp; detachInterrupt(0); //im not sure if this is necessary here</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; rpmcount++; //update rpmcount</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; //Toggle status LED&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; if (status == LOW) {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; status = HIGH;</p>
+<p>&nbsp;&nbsp; } else {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; status = LOW;</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; digitalWrite(statusPin, status);</p>
+<p>&nbsp;&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>&nbsp;}</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void set_fun()</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp; if (ControlMode == 1)</p>
+<p>&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; if (digitalRead(encoderPinB) == LOW)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle = Throttle - 2;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle = constrain(Throttle,ThrottleMin,ThrottleMax);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle = Throttle + 2;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Throttle = constrain(Throttle,ThrottleMin,ThrottleMax);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp; {</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (digitalRead(encoderPinB) == LOW)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=Setpoint - 25;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=constrain(Setpoint,RPMmin,RPMmax);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=Setpoint + 25;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=constrain(Setpoint,RPMmin,RPMmax);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp; }</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void Throttle_Reset()</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp; myservo.write(0);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // home servo</p>
+<p>&nbsp;&nbsp;&nbsp; ControlMode=1;</p>
+<p>&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp; Output=0;</p>
+<p>&nbsp;&nbsp;&nbsp; Throttle=0;</p>
+<p>&nbsp;&nbsp;&nbsp; Setpoint=0;</p>
+<p>&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp; ESTOP=HIGH;</p>
+<p>&nbsp;&nbsp;&nbsp; delay(2000);</p>
+<p>&nbsp; }</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void ModeSwitch()</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp; if (digitalRead(ModeSwitchPin) == LOW)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount++;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(ModeSwitchCount &gt;12)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount = 12;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount--;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(ModeSwitchCount &lt; -12)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ModeSwitchCount = -12;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp; if(ModeSwitchCount == 10)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ControlMode = 0;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp; if(ModeSwitchCount == -10)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ControlMode = 1;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;}</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void CalculateRPM()</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; rpm = float(60.0*1000.0)/float((d_t))*float(rpmcount)/TicsPerRev;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; total -= readings[index];&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // subtract the last reading</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; readings[index] = rpm; // read from the sensor</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; total += readings[index];&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // add the reading to the total</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; index = (index + 1);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // advance to the next index</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; if (index &gt;= NUMREADINGS)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // if we're at the end of the array...</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; index = 0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // ...wrap around to the beginning</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RPMaverage = total / NUMREADINGS;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // calculate the average</p>
+<p>&nbsp;</p>
+<p>&nbsp; }</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void PrintData()</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (DataFast == HIGH)</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" time(s) ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PIDtime = millis()/1000;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(PIDtime);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" RPM ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.println(RPMaverage);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" Deriv ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.println(Derivative);&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loopCount=0;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print("SetPt ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(Setpoint);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" Output ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(Output);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" Mode ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(ControlMode);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" time(s) ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PIDtime = millis()/1000;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(PIDtime);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" Integral ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(Integral);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" RPM ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.println(RPMaverage);&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" Deriv ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.println(Derivative);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loopCount=0;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp; }</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void PresetSetpointAdjust()</p>
+<p>{</p>
+<p>&nbsp; if (ControlMode == 1)</p>
+<p>&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Throttle = OpenLoopPresetSetpoint;</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; else</p>
+<p>&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integral=Output/Ki;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Setpoint=ClosedLoopPresetSetpoint; // ready for switch to closed loop mode</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>}</p>
+<p>////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>void RunAwayAdjust()</p>
+<p>{</p>
+<p>&nbsp; if (Reacting==0)</p>
+<p>&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp; ControlMode = 1;</p>
+<p>&nbsp; digitalWrite(ClosedLoopLED, LOW);</p>
+<p>&nbsp; digitalWrite(OpenLoopLED, HIGH);</p>
+<p>&nbsp; Throttle = OpenLoopPresetSetpoint;//*.75;</p>
+<p>&nbsp; Reacting = 1;</p>
+<p>&nbsp; }</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp; if (Reacting == 1)</p>
+<p>&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Reacting = 0;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; ControlMode = 0;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(ClosedLoopLED, HIGH);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; digitalWrite(OpenLoopLED, LOW);</p>
+<p>&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+
+<!-- pbraw=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 -->

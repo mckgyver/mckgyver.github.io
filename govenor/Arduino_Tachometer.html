@@ -1,0 +1,86 @@
+<!-- page=Arduino_Tachometer -->
+<!-- uid=55d865e0197dbd2640b14af962bdb9175d031222 -->
+<!-- time=1244086893 -->
+<!-- ip=75.67.158.32 -->
+<!-- content-type=text/html -->
+<!-- name= -->
+<!-- email=mckgyver@gmail.com -->
+<p style="text-align: center;"><a href="/f/Tachometer.pde"><img src="tachometer_schematic.JPG"></a></p>
+<p>&nbsp;</p>
+<p><a href="/f/Tachometer.pde">Tachometer.pde</a></p>
+<p>//Arduino Code</p>
+<p>/*</p>
+<p>&nbsp;* Tachometer</p>
+<p>&nbsp;*</p>
+<p>&nbsp;* M.G.McKinley</p>
+<p>&nbsp;* 6/1/2009</p>
+<p>&nbsp;* Adjust&nbsp;</p>
+<p>&nbsp;*/</p>
+<p>//Define Variables</p>
+<p>&nbsp; int ticsPerRev = 16;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // define number of tics per rev of code wheel</p>
+<p>&nbsp; float rpm = 0.0;&nbsp; // I prefer float for rpm</p>
+<p>&nbsp; volatile int rpmcount =0;&nbsp; // volitile because the variable is manipulated during the interrupt</p>
+<p>&nbsp; unsigned long timeold = 0; // used to calculate d_t= millis()-timeold;</p>
+<p>&nbsp; int d_t;</p>
+<p>&nbsp; int statusPin = 9;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // LED connected to digital pin (changes state with each tic of code wheel)</p>
+<p>volatile byte status= LOW;&nbsp;&nbsp;&nbsp; // set initial state of status LED</p>
+<p>&nbsp;</p>
+<p>void setup()</p>
+<p>&nbsp;{</p>
+<p>&nbsp;&nbsp; Serial.begin(9600);</p>
+<p>&nbsp;&nbsp; //Interrupt 0 is digital pin 2, so that is where the IR detector is connected</p>
+<p>&nbsp;&nbsp; //Triggers on FALLING (change from HIGH to LOW)</p>
+<p>&nbsp;&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; pinMode(statusPin, OUTPUT); //Use statusPin to flash along with interrupts</p>
+<p>&nbsp;}</p>
+<p>&nbsp;void loop()</p>
+<p>&nbsp;{</p>
+<p>&nbsp;&nbsp; //Update RPM every second</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; //Don't process interrupts during calculations</p>
+<p>&nbsp;&nbsp; detachInterrupt(0);</p>
+<p>&nbsp;&nbsp; d_t=millis()-timeold;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; if (d_t &gt;= 1000)</p>
+<p>&nbsp;&nbsp;&nbsp; {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; rpm = float(60.0*1000.0)/float((d_t))*float(rpmcount)/ticsPerRev;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timeold = millis();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; d_t=0; //reset d_t</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //Serial Port Output</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print("Time(ms) ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(timeold); //time at end of interval (hence timeold=millis(); above )</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" TicsPerInterval ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(rpmcount);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.print(" RPM ");</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Serial.println(rpm);</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rpmcount = 0; //reset rpmcount</p>
+<p>&nbsp;</p>
+<p>&nbsp; }</p>
+<p>&nbsp; //Restart the interrupt processing</p>
+<p>&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>&nbsp;}</p>
+<p>void rpm_fun()</p>
+<p>&nbsp;{</p>
+<p>&nbsp;&nbsp; //This interrupt is run at each codewheel tic</p>
+<p>&nbsp;&nbsp; detachInterrupt(0); //im not sure if this is necessary here</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; rpmcount++; //update rpmcount</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; //Toggle status LED&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp; if (status == LOW) {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; status = HIGH;</p>
+<p>&nbsp;&nbsp; } else {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; status = LOW;</p>
+<p>&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; digitalWrite(statusPin, status);</p>
+<p>&nbsp;&nbsp; attachInterrupt(0, rpm_fun, FALLING);</p>
+<p>&nbsp;}</p>
+<p>&nbsp;</p>
+<p style="text-align: center;"><a href="http://mckgyver.pbwiki.com/">McKGyver Home</a></p>
+
+<!-- pbraw=eJylV1tz4jYUfudXnOFhi7PBNiSQQJZMd5puQps0TEq6jxnZFra6suSxZFKms/+9R74AZhzqpg8wlnRuOufTd6SEhHT6OQ0yJuTLkviRjKmmaSdjwXQ0Ci7HI+oOJheBFwzH5643OCeryXjoBd5kcDEK3LPBcDjsaBbT6WB4fu5eji8nZx2WTC9G9vjCHowu7bNhx5dCU6H7epPQqaZ/aSfSMe8IgmodGhPGp7H/LdysafpjaIa2L+OOkemvWRoyMRWy0+/34YZoAl8k5/JVAU50PiWg9IbTWdeY7RPOQjEFH53R9Kp7/YlAlNLVrOusnN3m7CSguMbiEFTq54t6u/ii/AhD0sy3f1ncophD8Jdco6vrD8JTyVU1Oma8Pt634ThltuEnaVbK2ZO6jxPYWThYORR8sG/tB/9XJjjdHK6NnYEzdN3J4fzn4M9M6fp2yjVnF+gNXTFB4Q+SMuJxquqSwIQGTJNa0PSJrmEGg/FVsXT8HxwHgsK0yGKPpiBXuSFI8DtFUzj2MTnwGlHKD7yuuCQa0iRGh67t7tmcQ4LlQBOFyEqmRuxAfS051pbTPHpc9mWGH7N9OyjCchGP+iRTFHREYV0mAZiCmAiWZGiHBhBkKRNhLsIM6NIs0QcuM6EQlSjLpZHEsyJ5YKLPvaGDALQEn3A/twnBi55BzDhnqmf1S/mrhuSjYNO00kRnasEE+pi0qkjbqt3/fIOFEYL6ugg6YCHThEOCznp+RERIVe4fa8d0BBRBbEpbr6hVBb0thrdBjSLuGdw/fn3Dv6Iad4jFQZeFF7RbqJnYmo/pWrLAaGZJz6pL/F0fln5+p1hpbnsUeac3GbuuddUo5zjzquDgGljsJ2N4CkoiKhCHuIK7TgsYzZ8Q+hrzh+DEhW0y3/CwTFkY0lSBFPDl8/39/LfbKs+wSmUMd/PbO1MIzJnVaINoQ23bSHvuqUH9yyoTp5XFw/0dG5VWcYsPWM7eFmqn8Pi8XDwvLRP1s6J7IMToVpyoCEiO/xwX26NywCnf68O8dFzKlpVDz0lgUPG0eACKzWSDdccUBy12hGwnxQ8aKUT6VKm9CKsjXh1QJoVqNIGFraf6DeCY8/0vx7tRj62gh7rwIdRXSLYuIrNJrpRuTFFNouDQnCx7Y6TSE2PSdi2nmDK+LOukGFRMaTk7xm8Rc4PXHf9VOWirafKWc2ZKDRHg8F0BOE5xwmEhUw2PmU4y3VK1pIYE8aB73SXupBcrC7qtt1AzUGYiPzLmG88qUBEYTsvRt8YYexEVPq2StoUNnmtPrikcAcCRwGFZ1HBeeXnnBrageJd2Nz+m73PNhXF+nLiO4b7s+rAHp2r2mEk44CdUfqLIdIij2gWgYhGkjQOFd9Dx1mfOhqV0W0JcRmyPy0zLSTORA810ZtOS845senRbTkOrLAYh8aKRYVdDVtK5EwXYynDTBGnX9LsWjFbl/ONHYzUryLtNIXb7k2HI6d4dYH/9TRYtxWf5XcNqQZWVQt5vm+1+B8qx7/0HW+ae02yquRTF9eJrynSt8Rafb/Sa/4O3WhLbPbMirZOp41SPOTvxXtk3Zl5zTvcaHym3Zhbu8F2zfRL9A5lJvro= -->
